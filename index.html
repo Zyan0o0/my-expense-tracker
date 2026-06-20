@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的簡易記帳本</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 350px; box-sizing: border-box; }
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        label { display: block; margin: 10px 0 5px; color: #666; font-size: 0.9em; }
+        input, select { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1em; }
+        button { width: 100%; padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer; transition: background 0.3s; }
+        button:hover { background-color: #45a049; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+        #message { margin-top: 15px; text-align: center; font-weight: bold; min-height: 20px; }
+        .success { color: #2e7d32; }
+        .error { color: #d32f2f; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>💰 簡易記帳本</h2>
+    <form id="expenseForm">
+        <label for="date">日期</label>
+        <input type="date" id="date" required>
+
+        <label for="item">項目</label>
+        <input type="text" id="item" placeholder="例如：午餐、薪水" required>
+
+        <label for="type">收支分類</label>
+        <select id="type">
+            <option value="支出">支出</option>
+            <option value="收入">收入</option>
+        </select>
+
+        <label for="amount">金額</label>
+        <input type="number" id="amount" placeholder="輸入金額" required min="0">
+
+        <button type="submit" id="submitBtn">記上一筆</button>
+    </form>
+    <div id="message"></div>
+</div>
+
+<script>
+    // ！！！ 注意 ！！！
+    // 請將下方引號內的網址，替換成你在第一部分最後取得的 Google Apps Script 網址
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxqf5Fle91R1Rhzl-6eQZB_s3Fv5sVbj2CuAv5qZc4voGM4fPPYenqdS8NGFxBReJrl/exec";
+
+    // 頁面載入時自動將日期填入今天
+    document.getElementById('date').valueAsDate = new Date();
+
+    document.getElementById('expenseForm').addEventListener('submit', function(e) {
+        e.preventDefault(); // 防止表單重新整理頁面
+        
+        const btn = document.getElementById('submitBtn');
+        const msg = document.getElementById('message');
+        
+        btn.disabled = true;
+        btn.innerText = "傳送資料中...";
+        msg.className = '';
+        msg.innerText = "";
+
+        // 整理表單資料
+        const data = {
+            date: document.getElementById('date').value,
+            item: document.getElementById('item').value,
+            type: document.getElementById('type').value,
+            amount: document.getElementById('amount').value
+        };
+
+        // 發送資料給 Google Apps Script
+        fetch(GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify(data),
+            // 使用 text/plain 可以避開麻煩的 CORS 跨網域存取限制
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        })
+        .then(response => response.json())
+        .then(result => {
+            if(result.status === "success") {
+                msg.innerText = "✅ 記帳成功！已寫入試算表";
+                msg.className = 'success';
+                // 清空項目與金額，保留日期與收支分類方便連續記帳
+                document.getElementById('item').value = '';
+                document.getElementById('amount').value = '';
+            } else {
+                msg.innerText = "❌ 發生錯誤，請看主控台";
+                msg.className = 'error';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            msg.innerText = "❌ 網路連線失敗";
+            msg.className = 'error';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerText = "記上一筆";
+        });
+    });
+</script>
+
+</body>
+</html>
